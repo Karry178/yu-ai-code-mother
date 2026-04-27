@@ -1,10 +1,16 @@
 package com.yupi.yucodemotherbackend.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
+
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import static com.yupi.yucodemotherbackend.constatnt.UserConstant.USER_LOGIN_STATE;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.exception.ThrowUtils;
@@ -15,16 +21,11 @@ import com.yupi.yucodemotherbackend.model.enums.UserRoleEnum;
 import com.yupi.yucodemotherbackend.model.vo.LoginUserVO;
 import com.yupi.yucodemotherbackend.model.vo.UserVO;
 import com.yupi.yucodemotherbackend.service.UserService;
+
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.yupi.yucodemotherbackend.constatnt.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 服务层实现。
@@ -201,7 +202,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		if (userQueryRequest == null) {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
 		}
-		// 2.拿到userQueryRequest请求对象中的值 allget
+		// 2.拿到userQueryRequest请求对象中的值
 		Long id = userQueryRequest.getId();
 		String userName = userQueryRequest.getUserName();
 		String userAccount = userQueryRequest.getUserAccount();
@@ -210,14 +211,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		String sortField = userQueryRequest.getSortField();
 		String sortOrder = userQueryRequest.getSortOrder();
 
-		// 3.把拿到的值挨个设置给QueryWrapper
-		return QueryWrapper.create()
-				.eq("id", id)
-				.eq("userName", userName)
-				.eq("userAccount", userAccount)
-				.eq("userProfile", userProfile)
-				.eq("userRole", userRole)
-				.eq(sortField, "ascend".equals(sortOrder));
+		// 3.创建QueryWrapper，只在字段不为空时添加查询条件
+		QueryWrapper queryWrapper = QueryWrapper.create();
+		
+		// 精确匹配
+		if (id != null) {
+			queryWrapper.eq("id", id);
+		}
+		if (StrUtil.isNotBlank(userAccount)) {
+			queryWrapper.eq("userAccount", userAccount);
+		}
+		if (StrUtil.isNotBlank(userRole)) {
+			queryWrapper.eq("userRole", userRole);
+		}
+		
+		// 模糊匹配
+		if (StrUtil.isNotBlank(userName)) {
+			queryWrapper.like("userName", userName);
+		}
+		if (StrUtil.isNotBlank(userProfile)) {
+			queryWrapper.like("userProfile", userProfile);
+		}
+		
+		// 排序
+		if (StrUtil.isNotBlank(sortField)) {
+			boolean isAsc = "ascend".equals(sortOrder);
+			if (isAsc) {
+				queryWrapper.orderBy(sortField, true);
+			} else {
+				queryWrapper.orderBy(sortField, false);
+			}
+		}
+		
+		return queryWrapper;
 	}
 
 

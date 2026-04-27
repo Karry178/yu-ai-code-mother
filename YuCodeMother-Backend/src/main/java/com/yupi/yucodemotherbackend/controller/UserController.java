@@ -42,7 +42,7 @@ public class UserController {
 	 * @return
 	 */
 	@PostMapping("/register")
-	public BaseResponse<Long> register(@RequestBody UserRegisterRequest userRegisterRequest) {
+	public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
 		// 1.校验
 		ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
 		// 2.获取userRegisterRequest的值,并将结果返回给result

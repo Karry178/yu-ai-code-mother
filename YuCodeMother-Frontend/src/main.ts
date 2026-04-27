@@ -7,6 +7,9 @@ import router from './router'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/reset.css'
 
+/*引入全局用户权限限制*/
+import '@/access'
+
 const app = createApp(App)
 
 app.use(createPinia())
