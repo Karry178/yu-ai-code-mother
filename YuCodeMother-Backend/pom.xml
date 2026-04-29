@@ -114,6 +114,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+
+        <!-- 引入LangChain4j相关依赖 -->
+        <!-- 10.LangChain4j本身的包 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <!-- 11.引入LangChain4j - OpenAI -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
     </dependencies>
 
     <build>
