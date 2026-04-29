@@ -31,6 +31,7 @@ knife4j:
 # AI配置 - DeepSeek大模型
 langchain4j:
   open-ai:
+    # 普通模型输出
     chat-model:
       base-url: https://api.deepseek.com
       api-key: <Your API Key>
@@ -41,6 +42,13 @@ langchain4j:
       # 2.JSON Schema配置：严格确保结构化输出生效，DS不支持这个功能，但是有类似的配置 - 设置response-format参数为json_object
       strict-json-schema: true
       response-format: json_object
-
+      log-requests: true
+      log-responses: true
+    # 流式对象输出
+    streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: <Your API Key>
+      model-name: deepseek-chat
+      max-tokens: 8192
       log-requests: true
       log-responses: true
