@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
  *
  * @author Karry178
  */
+@Deprecated  // 被优化了
 public class CodeParser {
 
 	private static final Pattern HTML_CODE_PATTERN = Pattern.compile("```html\\s*\\n([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);
