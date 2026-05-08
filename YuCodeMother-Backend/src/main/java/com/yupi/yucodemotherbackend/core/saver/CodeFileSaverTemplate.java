@@ -1,7 +1,6 @@
 package com.yupi.yucodemotherbackend.core.saver;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.exception.ThrowUtils;
@@ -24,14 +23,16 @@ public abstract class CodeFileSaverTemplate<T> {
 	/**
 	 * 保存代码的流程 —— 流程不允许被子类复写，所以使用final修饰
 	 *
+	 * @param appId 应用Id
+	 * @param result 结果
 	 * @return
 	 */
-	public final File saveCode(T result) {
+	public final File saveCode(T result, Long appId) {
 
 		// 1.验证输入
 		validateInput(result);
 		// 2.构建唯一目录
-		String baseDirPath = buildUniqueDir();
+		String baseDirPath = buildUniqueDir(appId);
 		// 3.保存文件 （具体实现方法交给子类，父类不定义如何保存文件）
 		saveFiles(result, baseDirPath);
 		// 4.返回文件目录对象
@@ -65,13 +66,15 @@ public abstract class CodeFileSaverTemplate<T> {
 
 
 	/**
-	 * 构建文件的唯一路径， tmp/code_output/
+	 * 构建文件的唯一路径， tmp/code_output/bizType_雪花Id
 	 *
+	 * @param appId 应用id
 	 * @return 目录路径
 	 */
-	protected String buildUniqueDir() {
+	protected String buildUniqueDir(Long appId) {
+		ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "应用id不能为空值");
 		String codeType = getCodeType().getValue();
-		String uniqueDirName = StrUtil.format("{}_{}", codeType, IdUtil.getSnowflakeNextIdStr());
+		String uniqueDirName = StrUtil.format("{}_{}", codeType, appId);
 		String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
 		FileUtil.mkdir(dirPath);
 		return dirPath;

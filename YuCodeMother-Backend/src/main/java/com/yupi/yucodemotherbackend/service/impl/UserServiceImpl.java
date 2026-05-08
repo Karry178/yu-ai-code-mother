@@ -4,10 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
-
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import static com.yupi.yucodemotherbackend.constatnt.UserConstant.USER_LOGIN_STATE;
@@ -21,7 +19,6 @@ import com.yupi.yucodemotherbackend.model.enums.UserRoleEnum;
 import com.yupi.yucodemotherbackend.model.vo.LoginUserVO;
 import com.yupi.yucodemotherbackend.model.vo.UserVO;
 import com.yupi.yucodemotherbackend.service.UserService;
-
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;

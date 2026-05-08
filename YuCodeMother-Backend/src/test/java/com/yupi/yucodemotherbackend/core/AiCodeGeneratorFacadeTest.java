@@ -10,8 +10,6 @@ import reactor.core.publisher.Flux;
 import java.io.File;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @SpringBootTest
 class AiCodeGeneratorFacadeTest {
 
@@ -20,13 +18,13 @@ class AiCodeGeneratorFacadeTest {
 
 	@Test
 	void generateAndSaveCode() {
-		File file = aiCodeGeneratorFacade.generateAndSaveCode("生成一个登录界面，尽可能使用30行以内的代码实现。", CodeGenTypeEnum.HTML);
+		File file = aiCodeGeneratorFacade.generateAndSaveCode("生成一个登录界面，尽可能使用30行以内的代码实现。", CodeGenTypeEnum.HTML, 1L);
 		Assertions.assertNotNull(file);
 	}
 
 	@Test
 	void generateAndSaveCodeStream() {
-		Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream("生成一个登录界面，尽可能使用20行以内的代码实现。", CodeGenTypeEnum.HTML);
+		Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream("生成一个登录界面，尽可能使用20行以内的代码实现。", CodeGenTypeEnum.HTML, 1L);
 		// 使用collectList().block()方法 可以 等全部代码收集后
 		List<String> result = codeStream.collectList().block();
 		// 验证结果
