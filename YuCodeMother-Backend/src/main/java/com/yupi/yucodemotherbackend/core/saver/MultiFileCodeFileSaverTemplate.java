@@ -1,10 +1,11 @@
 package com.yupi.yucodemotherbackend.core.saver;
 
-import cn.hutool.core.util.StrUtil;
 import com.yupi.yucodemotherbackend.ai.model.MultiFileCodeResult;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
+
+import cn.hutool.core.util.StrUtil;
 
 /**
  * 多文件代码保留器
@@ -22,9 +23,9 @@ public class MultiFileCodeFileSaverTemplate extends CodeFileSaverTemplate<MultiF
 		// 保存HTML文件
 		writeToFile(baseDirPath, "index.html", result.getHtmlCode());
 		// 保存CSS文件
-		writeToFile(baseDirPath, "index.css", result.getCssCode());
+		writeToFile(baseDirPath, "style.css", result.getCssCode());
 		// 保存JS文件
-		writeToFile(baseDirPath, "index.js", result.getJsCode());
+		writeToFile(baseDirPath, "script.js", result.getJsCode());
 	}
 
 

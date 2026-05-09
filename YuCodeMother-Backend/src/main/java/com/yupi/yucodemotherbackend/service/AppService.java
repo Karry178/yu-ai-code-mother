@@ -29,6 +29,16 @@ public interface AppService extends IService<App> {
 
 
 	/**
+	 * 应用部署
+	 *
+	 * @param appId 应用Id
+	 * @param loginUser 登录用户，目的是进行权限校验
+	 * @return 可访问的部署地址
+	 */
+	String deployApp(Long appId, User loginUser);
+
+
+	/**
 	 * 获取应用封装类
 	 *
 	 * @param app

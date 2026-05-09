@@ -2,11 +2,11 @@ package com.yupi.yucodemotherbackend.core;
 
 import java.io.File;
 
-import com.yupi.yucodemotherbackend.core.parser.CodeParserExecutor;
-import com.yupi.yucodemotherbackend.core.saver.CodeFileSaverExecutor;
 import org.springframework.stereotype.Service;
 
 import com.yupi.yucodemotherbackend.ai.AiCodeGeneratorService;
+import com.yupi.yucodemotherbackend.core.parser.CodeParserExecutor;
+import com.yupi.yucodemotherbackend.core.saver.CodeFileSaverExecutor;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
@@ -140,14 +140,25 @@ public class AiCodeGeneratorFacade {
 					// 流式返回后，保存代码
 					try {
 						String completeCode = codeBuilder.toString();
+						
+						// 🔍 添加调试日志：查看 AI 返回的完整内容
+						log.info("=== AI 返回的完整代码 ===");
+						log.info("代码长度: {} 字符", completeCode.length());
+						log.info("前 500 字符: {}", completeCode.substring(0, Math.min(500, completeCode.length())));
+						
 						// 使用执行器Executor解析代码
 						Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
+						
+						// 🔍 添加调试日志：查看解析结果
+						log.info("=== 解析结果 ===");
+						log.info("解析结果类型: {}", parsedResult.getClass().getSimpleName());
+						
 						// 使用执行器保存代码
 						File saveDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
 						// 文件创建完成，打日志
 						log.info("文件保存成功，目录为：{}", saveDir.getAbsolutePath());
 					} catch (Exception e) {
-						log.error("文件保存失败：{}", e.getMessage());
+						log.error("文件保存失败：{}", e.getMessage(), e);
 					}
 				});
 	}

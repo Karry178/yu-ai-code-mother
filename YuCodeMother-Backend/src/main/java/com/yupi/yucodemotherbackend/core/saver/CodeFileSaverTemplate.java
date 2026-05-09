@@ -1,13 +1,15 @@
 package com.yupi.yucodemotherbackend.core.saver;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.StrUtil;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+
+import com.yupi.yucodemotherbackend.constatnt.AppConstant;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.exception.ThrowUtils;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
 
 /**
  * 抽象代码文件保存器 - 模版方法模式
@@ -17,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 public abstract class CodeFileSaverTemplate<T> {
 
 	// 文件保存的根目录
-	private static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
+	private static final String FILE_SAVE_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
 
 	/**

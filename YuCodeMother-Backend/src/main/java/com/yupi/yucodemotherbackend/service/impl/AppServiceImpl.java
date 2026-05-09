@@ -1,9 +1,13 @@
 package com.yupi.yucodemotherbackend.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.yupi.yucodemotherbackend.constatnt.AppConstant;
 import com.yupi.yucodemotherbackend.core.AiCodeGeneratorFacade;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
@@ -22,6 +26,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +52,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 
 	/**
-	 * 通过对话生成应用代码
+	 * 【重点】通过对话生成应用代码
 	 *
 	 * @param appId 应用Id
 	 * @param message 提示词
@@ -74,6 +80,67 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "应用代码生成类型错误");
 		// 5.调用AI生成代码
 		return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+	}
+
+
+	/**
+	 * 【重点】应用部署
+	 *
+	 * @param appId 应用Id
+	 * @param loginUser 登录用户，目的是进行权限校验
+	 * @return 可访问的部署地址
+	 */
+	@Override
+	public String deployApp(Long appId, User loginUser) {
+		// 1.参数校验
+		ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID错误");
+		ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+		// 2.查询应用信息
+		App app = this.getById(appId);
+		ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+		// 3.权限校验，仅本人可以部署自己的应用
+		if (!app.getUserId().equals(loginUser.getId())) {
+			throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限部署该应用");
+		}
+		// 4.检查是否已有 deployKey
+		String deployKey = app.getDeployKey();
+			// 如果没有，则生成 6 位 deployKey (字母 + 数字)
+		if (StrUtil.isBlank(deployKey)) {
+			deployKey = RandomUtil.randomString(6);
+		}
+
+		// 5.获取代码生成类型，获取原始代码生成路径（应用访问目录）
+		String codeGenType = app.getCodeGenType();
+		String sourceDirName = codeGenType + "_" + appId;
+			// 生成原始文件路径
+		String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+
+		// 6.检查路径是否存在
+			// 先新建一个File对象，放入新建的sourceDirPath
+		File sourceDir = new File(sourceDirPath);
+			// 如果文件路径不存在 或者 路径不是一个目录形式，报错
+		if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码路径不存在，请先生成应用");
+		}
+
+		// 7.复制文件到部署目录
+		String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
+			// FileUtil.copyContent(原始文件目录， 目标文件目录， 是否覆盖内容)
+		try {
+			FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
+		} catch (Exception e) {
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用部署失败：" + e.getMessage());
+		}
+
+		// 8.更新数据库
+		App updateApp = new App();
+		updateApp.setId(appId);
+		updateApp.setDeployKey(deployKey);
+		updateApp.setDeployedTime(LocalDateTime.now());
+		boolean updateResult = this.updateById(updateApp);
+		ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
+		// 9.返回可访问的 URL 地址
+		return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
 	}
 
 

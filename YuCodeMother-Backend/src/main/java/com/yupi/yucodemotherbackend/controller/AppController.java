@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import cn.hutool.json.JSONUtil;
+import com.yupi.yucodemotherbackend.model.dto.app.*;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -21,10 +22,6 @@ import com.yupi.yucodemotherbackend.constatnt.UserConstant;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.exception.ThrowUtils;
-import com.yupi.yucodemotherbackend.model.dto.app.AppAddRequest;
-import com.yupi.yucodemotherbackend.model.dto.app.AppAdminUpdateRequest;
-import com.yupi.yucodemotherbackend.model.dto.app.AppQueryRequest;
-import com.yupi.yucodemotherbackend.model.dto.app.AppUpdateRequest;
 import com.yupi.yucodemotherbackend.model.entity.App;
 import com.yupi.yucodemotherbackend.model.entity.User;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
@@ -97,6 +94,29 @@ public class AppController {
 							.data("")
 							.build()
 				));
+	}
+
+
+	/**
+	 * 应用部署
+	 *
+	 * @param appDeployRequest 部署请求
+	 * @param request 登录请求
+	 * @return 部署后的 URL
+	 */
+	@PostMapping("/deploy")
+	public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+		// 检查部署请求是否为空
+		ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
+		// 获取应用Id
+		Long appId = appDeployRequest.getAppId();
+		ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用Id不能为空");
+		// 获取当前登录用户
+		User loginUser = userService.getLoginUser(request);
+		// 调用服务部署应用
+		String deployUrl = appService.deployApp(appId, loginUser);
+		// 返回部署成功的 URL
+		return ResultUtils.success(deployUrl);
 	}
 
 
