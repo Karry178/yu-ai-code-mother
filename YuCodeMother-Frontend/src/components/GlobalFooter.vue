@@ -13,19 +13,22 @@
 </template>
 
 <script setup lang="ts">
-// 页脚组件
+// 无需额外的响应式数据
 </script>
 
 <style scoped>
 .global-footer {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
   text-align: center;
-  padding: 16px 0;
-  background-color: #f0f2f5;
-  border-top: 1px solid #e8e8e8;
+  padding: 20px;
+  margin-top: 40px;
+  border-top: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 .footer-content {
-  color: rgba(0, 0, 0, 0.65);
+  margin: 0;
+  color: #666;
   font-size: 14px;
 }
 
@@ -40,7 +43,7 @@
 }
 
 .divider {
-  margin: 0 16px;
-  color: rgba(0, 0, 0, 0.45);
+  margin: 0 12px;
+  color: #d9d9d9;
 }
 </style>
