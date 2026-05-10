@@ -1,13 +1,13 @@
 package com.yupi.yucodemotherbackend.generator;
 
-import cn.hutool.core.lang.Dict;
-import cn.hutool.setting.yaml.YamlUtil;
+import java.util.Map;
+
 import com.mybatisflex.codegen.Generator;
-import com.mybatisflex.codegen.config.ColumnConfig;
 import com.mybatisflex.codegen.config.GlobalConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import java.util.Map;
+import cn.hutool.core.lang.Dict;
+import cn.hutool.setting.yaml.YamlUtil;
 
 
 /**
@@ -16,7 +16,7 @@ import java.util.Map;
 public class MyBatisCodeGenerator {
 
 	// 定义一个要生成的表名(会一直更换表)
-	private static final String[] TABLE_NAMES = {"app"};
+	private static final String[] TABLE_NAMES = {"chat_history"};
 
 	public static void main(String[] args) {
 
@@ -90,7 +90,11 @@ public class MyBatisCodeGenerator {
 
 		// 设置根包，建议先生成至一个临时目录下，再移动到对应的项目目录
 		globalConfig.getPackageConfig()
-				.setBasePackage("com.yupi.yucodemotherbackend.genresult");
+				.setBasePackage("com.yupi.yucodemotherbackend.genresult")
+				// 设置源代码输出路径，指定到 YuCodeMother-Backend 模块的 src/main/java 目录
+				.setSourceDir(System.getProperty("user.dir") + "/YuCodeMother-Backend/src/main/java")
+				// 设置 Mapper XML 文件输出路径，指定到 YuCodeMother-Backend 模块的 src/main/resources/mapper 目录
+				.setMapperXmlPath(System.getProperty("user.dir") + "/YuCodeMother-Backend/src/main/resources/mapper");
 
 		// 设置表前缀和只生成哪些表，setGenerateTable 未配置时，生成所有表
 		globalConfig.getStrategyConfig()

@@ -1,32 +1,7 @@
 package com.yupi.yucodemotherbackend.service.impl;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.io.IORuntimeException;
-import cn.hutool.core.util.RandomUtil;
-import cn.hutool.core.util.StrUtil;
-import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.spring.service.impl.ServiceImpl;
-import com.yupi.yucodemotherbackend.constatnt.AppConstant;
-import com.yupi.yucodemotherbackend.core.AiCodeGeneratorFacade;
-import com.yupi.yucodemotherbackend.exception.BusinessException;
-import com.yupi.yucodemotherbackend.exception.ErrorCode;
-import com.yupi.yucodemotherbackend.exception.ThrowUtils;
-import com.yupi.yucodemotherbackend.model.dto.app.AppQueryRequest;
-import com.yupi.yucodemotherbackend.model.entity.App;
-import com.yupi.yucodemotherbackend.mapper.AppMapper;
-import com.yupi.yucodemotherbackend.model.entity.User;
-import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
-import com.yupi.yucodemotherbackend.model.vo.AppVO;
-import com.yupi.yucodemotherbackend.model.vo.UserVO;
-import com.yupi.yucodemotherbackend.service.AppService;
-import com.yupi.yucodemotherbackend.service.UserService;
-import jakarta.annotation.Resource;
-import org.springframework.beans.BeanUtils;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,12 +9,43 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.yupi.yucodemotherbackend.constatnt.AppConstant;
+import com.yupi.yucodemotherbackend.core.AiCodeGeneratorFacade;
+import com.yupi.yucodemotherbackend.exception.BusinessException;
+import com.yupi.yucodemotherbackend.exception.ErrorCode;
+import com.yupi.yucodemotherbackend.exception.ThrowUtils;
+import com.yupi.yucodemotherbackend.mapper.AppMapper;
+import com.yupi.yucodemotherbackend.model.dto.app.AppQueryRequest;
+import com.yupi.yucodemotherbackend.model.entity.App;
+import com.yupi.yucodemotherbackend.model.entity.User;
+import com.yupi.yucodemotherbackend.model.enums.ChatHistoryMessageTypeEnum;
+import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
+import com.yupi.yucodemotherbackend.model.vo.AppVO;
+import com.yupi.yucodemotherbackend.model.vo.UserVO;
+import com.yupi.yucodemotherbackend.service.AppService;
+import com.yupi.yucodemotherbackend.service.ChatHistoryService;
+import com.yupi.yucodemotherbackend.service.UserService;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+
 /**
- * 服务层实现。
+ * 应用 服务层实现。
  *
  * @author <a href="https://github.com/Karry178">程序员Karry178</a>
  */
 @Service
+@Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
 	// 引入userService
@@ -49,6 +55,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	// 引入门面 - 调用AI
 	@Resource
 	private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+	// 引入ChatHistoryService
+	@Resource
+	private ChatHistoryService chatHistoryService;
 
 
 	/**
@@ -78,8 +88,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 			// 获取app对应的枚举类的值
 		CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
 		ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "应用代码生成类型错误");
-		// 5.调用AI生成代码
-		return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+
+		// 5.在调用AI前，将用户消息保存在数据库中
+		chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+		// 6.调用AI生成代码 (流式)
+		Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+		// 7.【重点】收集 AI 响应的内容，并在完成后保存记录到对话历史
+		StringBuilder aiResponseBuilder = new StringBuilder();
+		return contentFlux.map(chunk -> {
+			// 实时收集 AI 响应的内容
+			aiResponseBuilder.append(chunk);
+			return chunk;
+		}).doOnComplete(() -> {
+			// 流式返回完成后，保存 AI 消息到对话历史中
+			String aiResponse = aiResponseBuilder.toString();  // 拿到 message 返回
+			chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+		}).doOnError(error -> {
+			// 即使 AI 回复失败，也需要保存错误记录
+			String errorMessage = "AI 回复信息失败：" + error.getMessage();
+			chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+		});
 	}
 
 
@@ -236,5 +264,35 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 				.eq("priority", priority)
 				.eq("userId" ,userId)
 				.orderBy(sortField, "ascend".equals(sortOrder));
+	}
+
+
+	/**
+	 * 删除应用时，关联删除对话历史
+	 * 重新覆盖原有默认方法，要用Serializable(序列化格式)修饰 appId (默认如此)
+	 *
+	 * @param id 应用Id
+	 * @return
+	 */
+	@Override
+	public boolean removeById(Serializable id) {
+
+		if (id == null) {
+			return false;
+		}
+		// 将id的序列化格式转为Long类型
+		long appId = Long.parseLong(id.toString());
+		if (appId <= 0) {
+			return false;
+		}
+		// 调用删除对话历史方法 -> 先删除关联的对话历史
+		try {
+			chatHistoryService.deleteByAppId(appId);
+		} catch (Exception e) {
+			log.error("删除应用关联的对话历史失败：{}", e.getMessage());
+		}
+		// 删除应用 - 调用自己的删除方法
+		// 用super不用this是因为：用this会调用当前类重写的removeById()方法，导致调用自己 -> 无限递归 -> StackOverflowError; super.removeById(id)调用的是父类ServiceImpl的removeById方法
+		return super.removeById(id);
 	}
 }
