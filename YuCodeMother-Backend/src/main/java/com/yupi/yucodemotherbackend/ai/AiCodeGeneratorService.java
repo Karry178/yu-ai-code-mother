@@ -3,7 +3,9 @@ package com.yupi.yucodemotherbackend.ai;
 import com.yupi.yucodemotherbackend.ai.model.HtmlCodeResult;
 import com.yupi.yucodemotherbackend.ai.model.MultiFileCodeResult;
 
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 public interface AiCodeGeneratorService {
@@ -15,7 +17,8 @@ public interface AiCodeGeneratorService {
 	 * @return AI的输出结果
 	 */
 	@SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")  // 系统提示词注解，最好是直接指定prompt的路径，而不是在这里面写提示词
-	HtmlCodeResult generateHtmlCode(String userMessage);
+	// HtmlCodeResult generateHtmlCode(String userMessage);
+	HtmlCodeResult generateHtmlCode(@MemoryId int memoryId, @UserMessage String userMessage);
 
 
 	/**

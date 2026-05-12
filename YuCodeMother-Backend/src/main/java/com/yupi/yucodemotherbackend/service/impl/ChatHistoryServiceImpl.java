@@ -1,5 +1,6 @@
 package com.yupi.yucodemotherbackend.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -15,11 +16,16 @@ import com.yupi.yucodemotherbackend.model.entity.User;
 import com.yupi.yucodemotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.yupi.yucodemotherbackend.service.AppService;
 import com.yupi.yucodemotherbackend.service.ChatHistoryService;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 对话历史 服务层实现。
@@ -27,6 +33,7 @@ import java.time.LocalDateTime;
  * @author <a href="https://github.com/Karry178">程序员Karry178</a>
  */
 @Service
+@Slf4j
 public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory> implements ChatHistoryService {
 
 	// 引入 AppService，分页功能会用到
@@ -120,6 +127,55 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
 
 
 	/**
+	 * 加载对话记忆到内存
+	 * @param appId 应用Id
+	 * @param chatMemory 对话历史
+	 * @param maxCount 消息最大条数
+	 * @return 加载成功条数
+	 */
+	@Override
+	public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
+		try {
+			// 1.构造查询方法：查询最新的某一个 appId 对应的对话记忆
+			QueryWrapper queryWrapper = QueryWrapper.create()
+					// 方法引用：直接从ChatHistory中拿参数
+					.eq(ChatHistory::getAppId, appId)
+					.orderBy(ChatHistory::getCreateTime, false)
+					// 如果offset写0不写1，会调用两次最新的重复消息，这一步需要重点解释！
+					.limit(1, maxCount);
+			// 2.获取对话记忆列表
+			List<ChatHistory> historyList = this.list(queryWrapper);
+			if (CollUtil.isEmpty(historyList)) {
+				return 0;
+			}
+			// 将历史消息列表反转，确保按照时间正序，类似于微信聊天记录
+			historyList = historyList.reversed();
+			// 3.按照时间顺序将消息添加到记忆中
+			int loadedCount = 0;
+			// 先清理历史缓存，防止重复加载
+			chatMemory.clear();
+			// 循环遍历获取历史消息
+			for (ChatHistory history : historyList) {
+				if (ChatHistoryMessageTypeEnum.USER.getValue().equals(history.getMessageType())) {
+					// 从历史消息中拿到用户发送的消息，然后添加到对话记忆中
+					chatMemory.add(UserMessage.from(history.getMessage()));
+				} else if (ChatHistoryMessageTypeEnum.AI.getValue().equals(history.getMessageType())) {
+					chatMemory.add(AiMessage.from(history.getMessage()));
+				}
+				// 每一次都计数+1
+				loadedCount++;
+			}
+			log.info("成功为 appId：{} 加载了 {} 条历史消息", appId, loadedCount);
+			return loadedCount;
+		} catch (Exception e) {
+			log.error("加载历史对话失败，appId：{}，error：{}", appId, e.getMessage(), e);
+			// 加载失败不影响系统运行，只是没有历史上下文
+			return 0;
+		}
+	}
+
+
+	/**
 	 * 获取查询条件
 	 *
 	 * @param chatHistoryQueryRequest 查询聊天历史请求
@@ -162,6 +218,5 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
 		}
 		return queryWrapper;
 	}
-
 
 }

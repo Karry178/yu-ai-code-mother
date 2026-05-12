@@ -6,6 +6,7 @@ import com.mybatisflex.core.service.IService;
 import com.yupi.yucodemotherbackend.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.yupi.yucodemotherbackend.model.entity.ChatHistory;
 import com.yupi.yucodemotherbackend.model.entity.User;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import java.time.LocalDateTime;
 
@@ -50,6 +51,15 @@ public interface ChatHistoryService extends IService<ChatHistory> {
 	                                           LocalDateTime lastCreateTime,
 	                                           User loginUser);
 
+
+	/**
+	 * 加载对话记忆到内存
+	 * @param appId 应用Id
+	 * @param chatMemory 对话历史
+	 * @param maxCount 消息最大条数
+	 * @return 加载成功条数
+	 */
+	int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 
 	/**
 	 * 获取查询条件

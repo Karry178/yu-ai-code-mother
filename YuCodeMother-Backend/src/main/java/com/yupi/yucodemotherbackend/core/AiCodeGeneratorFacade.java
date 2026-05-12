@@ -2,6 +2,7 @@ package com.yupi.yucodemotherbackend.core;
 
 import java.io.File;
 
+import com.yupi.yucodemotherbackend.ai.AiCodeGeneratorServiceFactory;
 import org.springframework.stereotype.Service;
 
 import com.yupi.yucodemotherbackend.ai.AiCodeGeneratorService;
@@ -25,7 +26,7 @@ import reactor.core.publisher.Flux;
 public class AiCodeGeneratorFacade {
 
 	@Resource
-	AiCodeGeneratorService aiCodeGeneratorService;
+	private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
 	/**
 	 * 门面类 - 统一入口：根据类型生成并保存代码
@@ -40,6 +41,8 @@ public class AiCodeGeneratorFacade {
 		if (codeGenTypeEnum == null) {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
 		}
+		// 【新加入】根据 appId 获取相应的 AI 服务实例 - 直接从工厂模式中拿到不同 appId 各自的对话记忆
+		AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
 		// 2.枚举类型
 		return switch (codeGenTypeEnum) {
 			case HTML -> {
@@ -72,6 +75,8 @@ public class AiCodeGeneratorFacade {
 		if (codeGenTypeEnum == null) {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
 		}
+		// 【新加入】根据 appId 获取相应的 AI 服务实例 - 直接从工厂模式中拿到不同 appId 各自的对话记忆
+		AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
 		// 枚举类型
 		return switch (codeGenTypeEnum) {
 			case HTML -> {

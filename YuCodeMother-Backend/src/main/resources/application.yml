@@ -7,6 +7,20 @@ spring:
     url: jdbc:mysql://192.168.0.103:3306/yu_ai_code_mother
     username: root
     password: 123456
+  # Redis
+  data:
+    redis:
+      host: 192.168.0.103  # 本地开发使用 localhost，生产环境使用实际 IP
+      port: 6379
+      username: default
+      password: 123456
+      timeout: 5000  # 连接超时时间（毫秒）
+      ttl: 3600  # 过期时间
+  # session 配置
+  session:
+    store-type: redis
+    # session 30天过期
+    timeout: 2592000
   # 当前生效的配置文件 - local
   profiles:
     active: local
@@ -15,6 +29,10 @@ server:
   port: 8123
   servlet:
     context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
 
 # springdoc-openapi项目配置
 springdoc:
@@ -28,7 +46,7 @@ knife4j:
   setting:
     language: zh_cn
 
-# AI配置 - DeepSeek大模型
+# LangChain4j Redis Chat Memory Store 配置
 langchain4j:
   open-ai:
     # 普通模型输出
