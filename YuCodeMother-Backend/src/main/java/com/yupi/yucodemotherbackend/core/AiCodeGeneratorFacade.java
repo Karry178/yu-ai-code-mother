@@ -2,7 +2,14 @@ package com.yupi.yucodemotherbackend.core;
 
 import java.io.File;
 
+import cn.hutool.json.JSONUtil;
 import com.yupi.yucodemotherbackend.ai.AiCodeGeneratorServiceFactory;
+import com.yupi.yucodemotherbackend.ai.model.message.AiResponseMessage;
+import com.yupi.yucodemotherbackend.ai.model.message.ToolExecutedMessage;
+import com.yupi.yucodemotherbackend.ai.model.message.ToolRequestMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecution;
 import org.springframework.stereotype.Service;
 
 import com.yupi.yucodemotherbackend.ai.AiCodeGeneratorService;
@@ -42,7 +49,7 @@ public class AiCodeGeneratorFacade {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
 		}
 		// 【新加入】根据 appId 获取相应的 AI 服务实例 - 直接从工厂模式中拿到不同 appId 各自的对话记忆
-		AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+		AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 		// 2.枚举类型
 		return switch (codeGenTypeEnum) {
 			case HTML -> {
@@ -76,7 +83,7 @@ public class AiCodeGeneratorFacade {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
 		}
 		// 【新加入】根据 appId 获取相应的 AI 服务实例 - 直接从工厂模式中拿到不同 appId 各自的对话记忆
-		AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+		AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 		// 枚举类型
 		return switch (codeGenTypeEnum) {
 			case HTML -> {
@@ -90,11 +97,53 @@ public class AiCodeGeneratorFacade {
 				// 调用通用执行器返回并保存文件
 				yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
 			}
+			case VUE_PROJECT -> {
+				TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
+				yield processTokenStream(tokenStream);
+			}
 			default -> {
 				String errorMessage = "不支持的生成类型" + codeGenTypeEnum.getValue();
 				throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
 			}
 		};
+	}
+
+
+	/**
+	 * 将 TokenStream 转换为 流式Flux<String> 并传递工具调用信息
+	 *
+	 * @param tokenStream TokenStream对象
+	 * @return Flux<String> 流式响应
+	 */
+	private Flux<String> processTokenStream(TokenStream tokenStream) {
+		// 反应式编程 - 下面这段为样板代码
+		return Flux.create(sink -> {
+			// 监听 TokenStream
+			tokenStream
+			// 1.获取 AI 流式响应的内容
+			.onPartialResponse((String partialResponse) -> {
+				AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+				sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+			})
+			// 2.获取工具调用的流式输出
+			.onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+				ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+				sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+			})
+			// 3.获取工具调用完成的结果
+			.onToolExecuted((ToolExecution toolExecution) -> {
+				ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
+				sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
+			})
+			.onCompleteResponse((ChatResponse response) -> {
+				sink.complete();
+			})
+			.onError((Throwable error) -> {
+				error.printStackTrace();
+				sink.error(error);
+			})
+			.start();
+		});
 	}
 
 

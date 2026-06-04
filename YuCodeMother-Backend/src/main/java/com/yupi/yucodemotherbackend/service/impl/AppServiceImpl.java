@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.yupi.yucodemotherbackend.core.handler.JsonMessageStreamHandler;
+import com.yupi.yucodemotherbackend.core.handler.StreamHandlerExecutor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -60,6 +62,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	@Resource
 	private ChatHistoryService chatHistoryService;
 
+	// 引入流处理器执行器
+	@Resource
+	private StreamHandlerExecutor streamHandlerExecutor;
+
 
 	/**
 	 * 【重点】通过对话生成应用代码
@@ -92,9 +98,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		// 5.在调用AI前，将用户消息保存在数据库中
 		chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
 		// 6.调用AI生成代码 (流式)
-		Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+		Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
 		// 7.【重点】收集 AI 响应的内容，并在完成后保存记录到对话历史
-		StringBuilder aiResponseBuilder = new StringBuilder();
+		/*StringBuilder aiResponseBuilder = new StringBuilder();
+			// 反应式编程
 		return contentFlux.map(chunk -> {
 			// 实时收集 AI 响应的内容
 			aiResponseBuilder.append(chunk);
@@ -107,7 +114,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 			// 即使 AI 回复失败，也需要保存错误记录
 			String errorMessage = "AI 回复信息失败：" + error.getMessage();
 			chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-		});
+		});*/
+
+		/**
+		 * 因为有了处理器：JsonMessageStreamHandler、SimpleTextStreamHandler和StreamHandlerExecutor
+		 * -> 上述收集AI相应内容并处理原始流后返回给前端的功能,就不用写在外层(App的实现类)了
+		 * -> 直接调用流处理器执行器 StreamHandlerExecutor
+ 		 */
+		return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+
 	}
 
 

@@ -4,13 +4,13 @@ spring:
   # mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.0.103:3306/yu_ai_code_mother
+    url: jdbc:mysql://192.168.1.128:3306/yu_ai_code_mother
     username: root
     password: 123456
   # Redis
   data:
     redis:
-      host: 192.168.0.103  # 本地开发使用 localhost，生产环境使用实际 IP
+      host: 192.168.1.128  # 本地开发使用 localhost，生产环境使用实际 IP
       port: 6379
       username: default
       password: 123456

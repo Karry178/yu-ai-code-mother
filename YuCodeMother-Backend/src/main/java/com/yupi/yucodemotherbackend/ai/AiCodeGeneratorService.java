@@ -5,6 +5,7 @@ import com.yupi.yucodemotherbackend.ai.model.MultiFileCodeResult;
 
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -47,4 +48,24 @@ public interface AiCodeGeneratorService {
 	 */
 	@SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
 	Flux<String> generateMultiFileCodeStream(String userMessage);
+
+
+	/**
+	 * 流式生成 Vue 项目代码 -> 只要使用了 @MemoryId注解，必须给第二个参数 打上 @UserMessage注解！
+	 *
+	 * @param userMessage 用户提示词
+	 * @return
+	 */
+	/*@SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
+	Flux<String> generateVueProjectCodeStream(@MemoryId long appId, @UserMessage String userMessage);*/
+
+
+	/**
+	 * 流式生成 Vue 项目代码 -> 使用TokenStream
+	 * @param appId
+	 * @param userMessage
+	 * @return
+	 */
+	@SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
+	TokenStream generateVueProjectCodeStream(@MemoryId long appId, @UserMessage String userMessage);
 }
