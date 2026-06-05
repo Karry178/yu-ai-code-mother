@@ -5,9 +5,12 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.yupi.yucodemotherbackend.ai.model.message.*;
+import com.yupi.yucodemotherbackend.constatnt.AppConstant;
+import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import com.yupi.yucodemotherbackend.model.entity.User;
 import com.yupi.yucodemotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.yupi.yucodemotherbackend.service.ChatHistoryService;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -23,6 +26,20 @@ import java.util.Set;
 @Component
 public class JsonMessageStreamHandler {
 
+	// 引入Vue项目部署方法
+	@Resource
+	private VueProjectBuilder vueProjectBuilder;
+
+	/**
+	 * 处理 TokenStream（VUE_PROJECT）
+	 * -> 解析 JSON 消息并重组为完整的响应格式
+	 *
+	 * @param originFlux 原始流
+	 * @param chatHistoryService 聊天历史服务
+	 * @param appId 应用Id
+	 * @param loginUser 登录用户
+	 * @return 处理后的流
+	 */
 	public Flux<String> handle(Flux<String> originFlux, ChatHistoryService chatHistoryService, Long appId, User loginUser) {
 
 		// 收集数据用于生成后端记忆格式
@@ -39,6 +56,9 @@ public class JsonMessageStreamHandler {
 					// 流式响应完成后，添加AI消息到对话历史
 					String aiResponse = chatHistoryStringBuilder.toString();
 					chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+					// [部署补充]所有的流式响应完成后 -> 引入vueProjectBuilder的异步构建方法 -> 同时要构造出 projectPath
+					String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue-project/" + appId;
+					vueProjectBuilder.buildProjectAsync(projectPath);
 				})
 				.doOnError(error -> {
 					// 如果 AI 回复失败，也要记录错误消息
