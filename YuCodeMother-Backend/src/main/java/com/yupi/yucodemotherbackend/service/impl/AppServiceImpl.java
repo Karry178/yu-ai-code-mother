@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import com.yupi.yucodemotherbackend.core.handler.StreamHandlerExecutor;
+import com.yupi.yucodemotherbackend.service.ScreenshotService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +70,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	// 引入 Vue 项目部署
 	@Resource
 	private VueProjectBuilder vueProjectBuilder;
+
+	// 引入截图服务
+	@Resource
+	private ScreenshotService screenshotService;
 
 
 	/**
@@ -200,8 +205,33 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		updateApp.setDeployedTime(LocalDateTime.now());
 		boolean updateResult = this.updateById(updateApp);
 		ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
-		// 10.返回可访问的 URL 地址
-		return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+		// 10.得到可访问的 URL 地址
+		String appDeployUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+		// 11.异步生成截图 并 更新应用封面
+		generateAppScreenshotAsync(appId, appDeployUrl);
+		return appDeployUrl;
+	}
+
+
+	/**
+	 * 异步生成应用截图并更新封面
+	 *
+	 * @param appId 应用Id
+	 * @param appUrl 应用访问URL
+	 */
+	@Override
+	public void generateAppScreenshotAsync(Long appId, String appUrl) {
+		// 使用虚拟线程并执行
+		Thread.startVirtualThread(() -> {
+			// 调用截图服务生成截图并上传
+			String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+			// 更新数据库封面
+			App updateApp = new App();
+			updateApp.setId(appId);
+			updateApp.setCover(screenshotUrl);
+			boolean updated = this.updateById(updateApp); // 调用数据库的更新方法
+			ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+		});
 	}
 
 

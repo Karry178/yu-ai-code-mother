@@ -57,7 +57,7 @@ public class JsonMessageStreamHandler {
 					String aiResponse = chatHistoryStringBuilder.toString();
 					chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
 					// [部署补充]所有的流式响应完成后 -> 引入vueProjectBuilder的异步构建方法 -> 同时要构造出 projectPath
-					String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue-project/" + appId;
+					String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
 					vueProjectBuilder.buildProjectAsync(projectPath);
 				})
 				.doOnError(error -> {

@@ -78,9 +78,8 @@ public class VueProjectBuilder {
 	 */
 	private boolean executeNpmInstall(File projectDir) {
 		log.info("执行 npm install...");
-		// 构造需要执行的命令
-		String command = String.format("%s install", buildCommand("npm"));
-		return executeCommand(projectDir, "npm install", 300); // 5分钟超时
+		String command = buildCommand("npm") + " install";
+		return executeCommand(projectDir, command, 300); // 5分钟超时
 	}
 
 	/**
@@ -89,9 +88,8 @@ public class VueProjectBuilder {
 	 */
 	private boolean executeNpmBuild(File projectDir) {
 		log.info("执行 npm run build...");
-		// 构造需要执行的命令
-		String command = String.format("%s run build", buildCommand("npm"));
-		return executeCommand(projectDir, "npm run build", 180); // 3min超时
+		String command = buildCommand("npm") + " run build";
+		return executeCommand(projectDir, command, 180); // 3min超时
 	}
 
 	/**
@@ -122,15 +120,14 @@ public class VueProjectBuilder {
 	 * @param timeoutSeconds 超时时间(秒)
 	 * @return 是否执行成功
 	 */
-	private boolean executeCommand(File workingDir,String command, int timeoutSeconds) {
+	private boolean executeCommand(File workingDir, String command, int timeoutSeconds) {
 		try {
 			log.info("在目录 {} 中执行命令: {}", workingDir.getAbsolutePath(), command);
-			// 执行方法：传入一些环境变量、执行命令工作目录和命令
-			Process process = RuntimeUtil.exec(
-					null,
-					workingDir,
-					command.split("\\s+") // 命令分割为数组
-			);
+			String[] commandArray = buildProcessCommand(command);
+			String[] env = System.getenv().entrySet().stream()
+					.map(entry -> entry.getKey() + "=" + entry.getValue())
+					.toArray(String[]::new);
+			Process process = RuntimeUtil.exec(env, workingDir, commandArray);
 			// 等待进程完成，设置超时
 			boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
 			if (!finished) {
@@ -150,5 +147,16 @@ public class VueProjectBuilder {
 			log.error("执行命令失败：{}, 错误信息：{}", command, e.getMessage());
 			return false;
 		}
+	}
+
+
+	/**
+	 * 构造进程命令参数（Windows 下通过 cmd /c 执行，兼容 npm.cmd）
+	 */
+	private String[] buildProcessCommand(String command) {
+		if (isWindows()) {
+			return new String[]{"cmd", "/c", command};
+		}
+		return command.split("\\s+");
 	}
 }
