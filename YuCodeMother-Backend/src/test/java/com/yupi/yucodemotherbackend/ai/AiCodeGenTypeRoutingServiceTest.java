@@ -1,0 +1,33 @@
+package com.yupi.yucodemotherbackend.ai;
+
+import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+@Slf4j
+class AiCodeGenTypeRoutingServiceTest {
+
+	// 引入 AI 代码生成智能路由服务
+	@Resource
+	private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+
+	@Test
+	void routeCodeGenType() {
+		String userPrompt = "做一个简单的个人介绍页面";
+		CodeGenTypeEnum result = aiCodeGenTypeRoutingService.routeCodeGenType(userPrompt);
+		log.info("用户需求：{} -> {}", userPrompt, result.getValue());
+
+		userPrompt = "做一个公司官网，需要首页、关于我们、联系我们三个页面";
+		result = aiCodeGenTypeRoutingService.routeCodeGenType(userPrompt);
+		log.info("用户需求：{} -> {}", userPrompt, result.getValue());
+
+		userPrompt = "做一个电商管理系统，包含用户管理、商品管理、订单管理，需要路由和状态管理";
+		result = aiCodeGenTypeRoutingService.routeCodeGenType(userPrompt);
+		log.info("用户需求：{} -> {}", userPrompt, result.getValue());
+	}
+}

@@ -2,6 +2,7 @@ package com.yupi.yucodemotherbackend.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.yupi.yucodemotherbackend.model.dto.app.AppAddRequest;
 import com.yupi.yucodemotherbackend.model.dto.app.AppQueryRequest;
 import com.yupi.yucodemotherbackend.model.entity.App;
 import com.yupi.yucodemotherbackend.model.entity.User;
@@ -27,6 +28,15 @@ public interface AppService extends IService<App> {
 	 */
 	Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 
+
+	/**
+	 * 创建 App应用
+	 *
+	 * @param appAddRequest 创建应用请求
+	 * @param loginUser 登录用户
+	 * @return
+	 */
+	Long createApp(AppAddRequest appAddRequest, User loginUser);
 
 	/**
 	 * 应用部署

@@ -4,6 +4,9 @@
     <div class="header-bar">
       <div class="header-left">
         <h1 class="app-name">{{ appInfo?.appName || '网站生成器' }}</h1>
+        <a-tag v-if="appInfo?.codeGenType" color="blue" class="code-gen-type-tag">
+          {{ formatCodeGenType(appInfo.codeGenType) }}
+        </a-tag>
       </div>
       <div class="header-right">
         <a-button type="default" @click="showAppDetail">
@@ -11,6 +14,19 @@
             <InfoCircleOutlined />
           </template>
           应用详情
+        </a-button>
+        <!-- 下载项目代码的按钮 -->
+        <a-button
+          type="primary"
+          ghost
+          @click="downloadCode"
+          :loading="downloading"
+          :disabled="!isOwner"
+        >
+          <template #icon>
+            <DownloadOutlined />
+          </template>
+          下载代码
         </a-button>
         <a-button type="primary" @click="deployApp" :loading="deploying">
           <template #icon>
@@ -168,7 +184,9 @@ import {
   SendOutlined,
   ExportOutlined,
   InfoCircleOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons-vue'
+import { formatCodeGenType } from '../../../早期备份/yu-ai-code-mother-frontend（最终版）/src/utils/codeGenTypes.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -558,6 +576,49 @@ const deleteApp = async () => {
   }
 }
 
+// 下载相关
+const downloading = ref(false)
+
+// 下载代码
+const downloadCode = async () => {
+  if (!appId.value) {
+    message.error('应用Id不存在')
+    return
+  }
+  downloading.value = true
+  try {
+    const API_BASE_URL = request.defaults.baseURL || ''
+    const url = `${API_BASE_URL}/app/download/${appId.value}`
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      throw new Error(`下载失败:${response.status}`)
+    }
+
+    // 获取文件名
+    const contentDisposition = response.headers.get('Content-Disposition')
+    const fileName = contentDisposition?.match(/"(.+)"/)?.[1] || `app-${appId.value}.zip`
+    // 下载文件
+    const blob = await response.blob()
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = fileName
+    link.click()
+
+    // 清理
+    URL.revokeObjectURL(downloadUrl)
+    message.success('代码下载成功')
+  } catch (error) {
+    console.error('下载失败', error)
+    message.error('下载失败，请重试')
+  } finally {
+    downloading.value = false
+  }
+}
+
 // 页面加载时获取应用信息
 onMounted(() => {
   fetchAppInfo()
@@ -773,6 +834,13 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/**
+代码类型标签展示
+ */
+.code-gen-type-tag {
+  font-size: 12px;
 }
 
 /* 响应式设计 */

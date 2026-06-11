@@ -57,9 +57,9 @@ langchain4j:
       ## 结构化输出的优化技巧
       # 1.设置max_tokens
       max-tokens: 8192
-      # 2.JSON Schema配置：严格确保结构化输出生效，DS不支持这个功能，但是有类似的配置 - 设置response-format参数为json_object
-      strict-json-schema: true
-      response-format: json_object
+      # 2.JSON Schema配置：严格确保【结构化输出】生效，DS不支持这个功能，但是有类似的配置 - 设置response-format参数为json_object
+#      strict-json-schema: true
+#      response-format: json_object
       log-requests: true
       log-responses: true
     # 流式对象输出

@@ -1,11 +1,15 @@
 package com.yupi.yucodemotherbackend.controller;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import cn.hutool.json.JSONUtil;
+import com.yupi.yucodemotherbackend.ai.AiCodeGenTypeRoutingService;
 import com.yupi.yucodemotherbackend.model.dto.app.*;
+import com.yupi.yucodemotherbackend.service.ProjectDownloadService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -54,6 +58,10 @@ public class AppController {
 	@Resource
 	private UserService userService;
 
+	// 注入项目下载服务 ProjectDownloadService
+	@Resource
+	private ProjectDownloadService projectDownloadService;
+
 
 	/**
 	 * 【重点】与模型对话生成代码（SSE流式返回）
@@ -98,6 +106,41 @@ public class AppController {
 
 
 	/**
+	 * 下载应用代码
+	 *
+	 * @param appId 应用Id
+	 * @param request 请求
+	 * @param response 响应
+	 */
+	@GetMapping("/download/{appId}")
+	public void downloadAppCode(@PathVariable Long appId,
+                                HttpServletRequest request,
+                                HttpServletResponse response) {
+		// 1.基础校验
+		ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用Id无效");
+		// 2.查询应用信息
+		App app = appService.getById(appId);
+		ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+		// 3.权限校验：只有应用的创建者可以下载代码
+		User loginUser = userService.getLoginUser(request);
+		if (!app.getUserId().equals(loginUser.getId())) {
+			throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "用户无权限下载应用代码");
+		}
+		// 4.构建应用代码目录路径（生成目录，非部署目录）
+		String codeGenType = app.getCodeGenType();
+		String sourceDirName = codeGenType + "_" + appId;
+		String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+		// 5.检查代码目录是否存在
+		File sourceDir = new File(sourceDirPath);
+		ThrowUtils.throwIf(!sourceDir.exists() || !sourceDir.isDirectory(), ErrorCode.NOT_FOUND_ERROR, "应用代码不存在，请先生成代码");
+		// 6.生成下载文件名（不建议添加中文内容）-> 可以只用appId作为文件下载名
+		String downloadFileName = String.valueOf(appId);
+		// 7.调用通用下载服务
+		projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
+	}
+
+
+	/**
 	 * 应用部署
 	 *
 	 * @param appDeployRequest 部署请求
@@ -129,29 +172,13 @@ public class AppController {
 	 */
 	@PostMapping("/add")
 	public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
-
-		// 参数校验
+		// 基础校验
 		ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
-		String initPrompt = appAddRequest.getInitPrompt();
-		ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
 		// 获取当前登录用户
 		User loginUser = userService.getLoginUser(request);
-		// 构造入库对象 - App
-		App app = new App();
-		// 将请求中的数据赋值给新的App对象
-		BeanUtils.copyProperties(appAddRequest, app);
-		// 给App中的用户设置id，从登录用户获取对应的id
-		app.setUserId(loginUser.getId());
-
-		// 应用名称暂时为 initPrompt 前12位
-		app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-		// 暂时设置为 Vue工程项目 生成
-		app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
-
-		// 插入数据库
-		boolean result = appService.save(app);
-		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-		return ResultUtils.success(app.getId());
+		// 登录用户创建新的应用
+		Long appId = appService.createApp(appAddRequest, loginUser);
+		return ResultUtils.success(appId);
 	}
 
 

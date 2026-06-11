@@ -9,8 +9,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.yupi.yucodemotherbackend.ai.AiCodeGenTypeRoutingService;
 import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import com.yupi.yucodemotherbackend.core.handler.StreamHandlerExecutor;
+import com.yupi.yucodemotherbackend.model.dto.app.AppAddRequest;
 import com.yupi.yucodemotherbackend.service.ScreenshotService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -75,6 +77,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	@Resource
 	private ScreenshotService screenshotService;
 
+	// 引入 AI 代码生成类型路由服务
+	@Resource
+	private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+
 
 	/**
 	 * 【重点】通过对话生成应用代码
@@ -132,6 +138,44 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
  		 */
 		return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
 
+	}
+
+
+	/**
+	 * 创建 App应用
+	 *
+	 * @param appAddRequest 创建应用请求
+	 * @param loginUser 登录用户
+	 * @return
+	 */
+	@Override
+	public Long createApp(AppAddRequest appAddRequest, User loginUser) {
+		// 参数校验
+		ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
+		String initPrompt = appAddRequest.getInitPrompt();
+		ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
+		// 构造入库对象 - App
+		App app = new App();
+		// 将请求中的数据赋值给新的App对象
+		BeanUtils.copyProperties(appAddRequest, app);
+		// 给App中的用户设置id，从登录用户获取对应的id
+		app.setUserId(loginUser.getId());
+
+		// 应用名称暂时为 initPrompt 前12位
+		app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+
+		// [临时选择]暂时设置为 Vue工程项目 生成
+		// app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
+
+		// 【长期选择】现在可以改为 AI 智能路由服务 选择生成代码类型了
+		CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+		app.setCodeGenType(selectedCodeGenType.getValue());
+
+		// 插入数据库
+		boolean result = this.save(app);
+		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+		log.info("应用创建成功，Id：{}，类型“{}", app.getId(), selectedCodeGenType.getValue());
+		return app.getId();
 	}
 
 
