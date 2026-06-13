@@ -1,10 +1,13 @@
 package com.yupi.yucodemotherbackend.ai.tools;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.json.JSONObject;
 import com.yupi.yucodemotherbackend.constatnt.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,10 +16,11 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 /**
- * 将创建的 vue工程项目 写入文件到指定路径
+ * 将创建的 vue工程项目 写入文件到指定路径 -> 同时继承自工具基类 BaseTool ，实现3个抽象方法
  */
 @Slf4j
-public class FileWriteTool {
+@Component
+public class FileWriteTool extends BaseTool{
 
 	@Tool("写入文件到指定路径")
 	public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content,
@@ -46,5 +50,47 @@ public class FileWriteTool {
 			log.error(errorMessage, e);
 			return errorMessage;
 		}
+	}
+
+
+	/**
+	 * 获取工具的英文名词（对应方法名）
+	 *
+	 * @return 工具英文名称
+	 */
+	@Override
+	public String getToolName() {
+		return "writeFile";
+	}
+
+
+	/**
+	 * 获取工具的中文显示名称
+	 *
+	 * @return 工具中文名称
+	 */
+	@Override
+	public String getDisplayName() {
+		return "写入文件";
+	}
+
+
+	/**
+	 * 生成工具执行结果格式 - JSON（保存到数据库）
+	 *
+	 * @param arguments 工具执行参数
+	 * @return 格式化的工具执行结果
+	 */
+	@Override
+	public String generateToolExecutedResult(JSONObject arguments) {
+		String relativeFilePath = arguments.getStr("relativeFilePath");
+		String suffix = FileUtil.getSuffix(relativeFilePath);
+		String content = arguments.getStr("content");
+		return String.format("""
+						【工具调用】写入文件 %s %s
+						```%s
+						%s
+						```
+						""", getDisplayName(), relativeFilePath, suffix, content);
 	}
 }

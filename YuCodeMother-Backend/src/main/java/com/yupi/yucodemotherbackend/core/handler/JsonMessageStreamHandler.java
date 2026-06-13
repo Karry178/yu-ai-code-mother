@@ -5,6 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.yupi.yucodemotherbackend.ai.model.message.*;
+import com.yupi.yucodemotherbackend.ai.tools.BaseTool;
+import com.yupi.yucodemotherbackend.ai.tools.ToolManager;
 import com.yupi.yucodemotherbackend.constatnt.AppConstant;
 import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import com.yupi.yucodemotherbackend.model.entity.User;
@@ -29,6 +31,11 @@ public class JsonMessageStreamHandler {
 	// 引入Vue项目部署方法
 	@Resource
 	private VueProjectBuilder vueProjectBuilder;
+
+	// 引入 ToolManager 工具管理器 -> 方便使用所有文件处理工具
+	@Resource
+	private ToolManager toolManager;
+
 
 	/**
 	 * 处理 TokenStream（VUE_PROJECT）
@@ -102,7 +109,11 @@ public class JsonMessageStreamHandler {
 				if (toolId != null && !seenToolIds.contains(toolId)) {
 					// 第一次调用该工具，记录 Id 并完整返回工具信息
 					seenToolIds.add(toolId);
-					return "\n\n[选择工具] 写入文件\n\n";
+
+					// 【重要】使用ToolManager拿到工具名获取工具实例 -> 返回格式化的工具调用信息(生成工具请求时的返回值（显示给用户）)
+					BaseTool tool = toolManager.getTool(toolRequestMessage.getName());
+					return tool.generateToolRequestResponse();
+
 				} else {
 					// 不是第一次调用这个工具，直接返回空
 					return "";
@@ -113,15 +124,12 @@ public class JsonMessageStreamHandler {
 				// 先解析出信息
 				ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk, ToolExecutedMessage.class);
 				JSONObject jsonObject = JSONUtil.parseObj(toolExecutedMessage.getArguments());
-				String relativeFilePath = jsonObject.getStr("relativeFilePath");
-				String suffix = FileUtil.getSuffix(relativeFilePath);
-				String content = jsonObject.getStr("content");
-				String result = String.format("""
-						【工具调用】写入文件 %s
-						```%s
-						%s
-						```
-						""", relativeFilePath, suffix, content);
+
+				// 【新】根据工具名称获取工具实例
+				String toolName = toolExecutedMessage.getName();
+				BaseTool tool = toolManager.getTool(toolName);
+				String result = tool.generateToolExecutedResult(jsonObject);// 生成JSON格式返回给前端
+
 				// 输出前端和要持久化的内容
 				String output = String.format("\n\n%s\n\n", result);
 				chatHistoryStringBuilder.append(output);

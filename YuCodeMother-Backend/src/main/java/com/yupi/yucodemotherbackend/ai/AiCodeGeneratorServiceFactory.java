@@ -2,8 +2,7 @@ package com.yupi.yucodemotherbackend.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.yupi.yucodemotherbackend.ai.tools.FileWriteTool;
-import com.yupi.yucodemotherbackend.config.ReasoningStreamingChatModelConfig;
+import com.yupi.yucodemotherbackend.ai.tools.*;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
@@ -47,6 +46,10 @@ public class AiCodeGeneratorServiceFactory {
 	// 引入ChatHistoryService，获取历史对话记忆
 	@Resource
 	private ChatHistoryService chatHistoryService;
+
+	// 引入 ToolManager 工具管理器，拿到定义的所有文件操作工具
+	@Resource
+	private ToolManager toolManager;
 
 
 	/**
@@ -124,7 +127,21 @@ public class AiCodeGeneratorServiceFactory {
 					// 根据不同的对话，设置不同对话记忆 - 框架规定：只要在AI对话上加入了MemoryId，就必须加上MemoryProvider()
 					.chatMemoryProvider(memoryId -> chatMemory)
 					// tools：把FIleWriteTool方法new出来 -> 将创建的vue工程写到指定路径下
-					.tools(new FileWriteTool())
+					.tools(
+							/*// 写入文件的工具
+							new FileWriteTool(),
+							// 读取文件的工具
+							new FileReadTool(),
+							// 修改文件内容的工具
+							new FileModifyTool(),
+							// 读取文件目录的工具
+							new FileDirReadTool(),
+							// 删除文件的工具
+							new FileDeleteTool()*/
+
+							// 使用 ToolManager 管理全部文件操作工具
+							toolManager.getAllTools()
+					)
 					// 处理工具调用幻觉问题：当AI出现幻觉，调用到不存在的工具时，该怎么处理？ 可以构造一个执行结果，告诉AI没有这个工具
 					.hallucinatedToolNameStrategy(toolExecutionRequest ->
 							ToolExecutionResultMessage.from(toolExecutionRequest,
