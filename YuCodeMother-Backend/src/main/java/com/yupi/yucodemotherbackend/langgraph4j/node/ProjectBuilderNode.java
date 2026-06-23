@@ -27,23 +27,18 @@ public class ProjectBuilderNode {
             String generatedCodeDir = context.getGeneratedCodeDir();
             CodeGenTypeEnum generationType = context.getGenerationType();
             String buildResultDir = "";
-            // 2.Vue 项目类型：使用 VueProjectBuilder 进行构建
-            if (generationType == CodeGenTypeEnum.VUE_PROJECT) {
-                try {
-                    VueProjectBuilder vueBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
-                    // 执行 Vue 项目构建(npm install + npm run build)
-                    boolean buildSuccess = vueBuilder.buildProject(generatedCodeDir);
-                    if (buildSuccess) {
-                        // 构建成功，返回 dist 目录路径
-                        buildResultDir = generatedCodeDir + File.separator + "dist";
-                        log.info("Vue 项目构建成功，dist 目录：{}", buildResultDir);
-                    }
-                } catch (Exception e) {
-                    log.error("Vue 项目构建异常：{}", e.getMessage(), e);
-                    buildResultDir = generatedCodeDir;
+            // 2.一定是Vue 项目类型：使用 VueProjectBuilder 进行构建 -> 【更新 - 更规范】因为在CodeGenWorkflow类中将[项目构建节点内容]换成了条件边，Vue项目和其余两种做了if-else选择，也就不需要在此类中重复了
+            try {
+                VueProjectBuilder vueBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
+                // 执行 Vue 项目构建(npm install + npm run build)
+                boolean buildSuccess = vueBuilder.buildProject(generatedCodeDir);
+                if (buildSuccess) {
+                    // 构建成功，返回 dist 目录路径
+                    buildResultDir = generatedCodeDir + File.separator + "dist";
+                    log.info("Vue 项目构建成功，dist 目录：{}", buildResultDir);
                 }
-            } else {
-                // 3.如果非VUE项目，则 HTML 和 MULTI_FILE 代码生成时已经保存了，直接使用生成的代码目录
+            } catch (Exception e) {
+                log.error("Vue 项目构建异常：{}", e.getMessage(), e);
                 buildResultDir = generatedCodeDir;
             }
 

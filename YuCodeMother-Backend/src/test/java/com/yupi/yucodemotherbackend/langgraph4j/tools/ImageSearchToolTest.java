@@ -1,6 +1,6 @@
 package com.yupi.yucodemotherbackend.langgraph4j.tools;
 
-import com.yupi.yucodemotherbackend.langgraph4j.enums.ImageCategoryEnum;
+import com.yupi.yucodemotherbackend.langgraph4j.model.enums.ImageCategoryEnum;
 import com.yupi.yucodemotherbackend.langgraph4j.model.ImageResource;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;

@@ -6,7 +6,7 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.yupi.yucodemotherbackend.langgraph4j.enums.ImageCategoryEnum;
+import com.yupi.yucodemotherbackend.langgraph4j.model.enums.ImageCategoryEnum;
 import com.yupi.yucodemotherbackend.langgraph4j.model.ImageResource;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;

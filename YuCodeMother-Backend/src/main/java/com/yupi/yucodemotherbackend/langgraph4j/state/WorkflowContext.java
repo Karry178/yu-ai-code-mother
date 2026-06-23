@@ -1,6 +1,8 @@
 package com.yupi.yucodemotherbackend.langgraph4j.state;
 
+import com.yupi.yucodemotherbackend.langgraph4j.model.ImageCollectionPlan;
 import com.yupi.yucodemotherbackend.langgraph4j.model.ImageResource;
+import com.yupi.yucodemotherbackend.langgraph4j.model.QualityResult;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -68,9 +70,30 @@ public class WorkflowContext implements Serializable {
     private String buildResultDir;
 
     /**
+     * 质量检查结果
+     */
+    private QualityResult qualityResult;
+
+    /**
      * 错误信息
      */
     private String errorMessage;
+
+
+    // 【补充图片收集】
+    /**
+     * 图片收集计划
+     */
+    private ImageCollectionPlan imageCollectionPlan;
+
+    /**
+     * 并发图片收集的中间结果字段
+     */
+    private List<ImageResource> contentImages;
+    private List<ImageResource> illustrations;
+    private List<ImageResource> diagrams;
+    private List<ImageResource> logos;
+
 
 
     @Serial

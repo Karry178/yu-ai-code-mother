@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesis;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
-import com.yupi.yucodemotherbackend.langgraph4j.enums.ImageCategoryEnum;
+import com.yupi.yucodemotherbackend.langgraph4j.model.enums.ImageCategoryEnum;
 import com.yupi.yucodemotherbackend.langgraph4j.model.ImageResource;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;

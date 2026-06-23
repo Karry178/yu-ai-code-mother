@@ -7,7 +7,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.system.SystemUtil;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
-import com.yupi.yucodemotherbackend.langgraph4j.enums.ImageCategoryEnum;
+import com.yupi.yucodemotherbackend.langgraph4j.model.enums.ImageCategoryEnum;
 import com.yupi.yucodemotherbackend.langgraph4j.model.ImageResource;
 import com.yupi.yucodemotherbackend.manager.CosManager;
 import dev.langchain4j.agent.tool.P;

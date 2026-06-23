@@ -1,4 +1,4 @@
-package com.yupi.yucodemotherbackend.langgraph4j.enums;
+package com.yupi.yucodemotherbackend.langgraph4j.model.enums;
 
 import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
