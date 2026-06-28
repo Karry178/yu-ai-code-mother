@@ -8,9 +8,12 @@ import java.util.Map;
 import cn.hutool.json.JSONUtil;
 import com.yupi.yucodemotherbackend.ai.AiCodeGenTypeRoutingService;
 import com.yupi.yucodemotherbackend.model.dto.app.*;
+import com.yupi.yucodemotherbackend.ratelimter.annotation.RateLimit;
+import com.yupi.yucodemotherbackend.ratelimter.enums.RateLimitType;
 import com.yupi.yucodemotherbackend.service.ProjectDownloadService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +42,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import static com.yupi.yucodemotherbackend.ratelimter.enums.RateLimitType.IP;
+import static com.yupi.yucodemotherbackend.ratelimter.enums.RateLimitType.USER;
 
 /**
  * 控制层。
@@ -72,6 +78,7 @@ public class AppController {
 	 * @return 返回生成代码样式
 	 */
 	@GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE) // 加入流式响应的声明
+	@RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 请求过于频繁，请稍后再试") // 加入限流式策略
 	public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
 	                                  @RequestParam String message,
 	                                  HttpServletRequest request) {
@@ -309,6 +316,11 @@ public class AppController {
 	 * @return 查询到的精选App列表
 	 */
 	@PostMapping("/good/list/page/vo")
+	@Cacheable(
+			value = "good_app_page",
+			key = "T(com.yupi.yucodemotherbackend.utils.CacheKeyUtils).generateKey(#appQueryRequest)", // 调用CacheKeyUtils包下generateKey()方法生成key
+			condition = "#appQueryRequest.pageNum <= 10"
+	) // SpringData Redis的缓存注解
 	public BaseResponse<Page<AppVO>> listGoodAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request) {
 		// 1.校验参数
 		ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);

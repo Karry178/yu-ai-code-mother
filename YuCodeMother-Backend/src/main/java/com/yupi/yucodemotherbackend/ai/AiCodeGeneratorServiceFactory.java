@@ -2,11 +2,14 @@ package com.yupi.yucodemotherbackend.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.yupi.yucodemotherbackend.ai.guardrail.PromptSafetyInputGuardrail;
+import com.yupi.yucodemotherbackend.ai.guardrail.RetryOutputGuardrail;
 import com.yupi.yucodemotherbackend.ai.tools.*;
 import com.yupi.yucodemotherbackend.exception.BusinessException;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import com.yupi.yucodemotherbackend.model.enums.CodeGenTypeEnum;
 import com.yupi.yucodemotherbackend.service.ChatHistoryService;
+import com.yupi.yucodemotherbackend.utils.SpringContextUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -20,6 +23,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
+import static dev.langchain4j.service.AiServices.builder;
+
 /**
  * AI服务创建工厂 - 把AI功能工厂化，简化创建过程，创建对象
  */
@@ -28,16 +33,8 @@ import java.time.Duration;
 public class AiCodeGeneratorServiceFactory {
 
 	// 引入普通的模型对话方式
-	@Resource
+	@Resource(name = "openAiChatModel") // 【多例模式】使用openAi自动注入的Bean
 	private ChatModel chatModel;
-
-	// 引入流式输出模型对话方式
-	@Resource
-	private StreamingChatModel openAiStreamingChatModel;
-
-	// 引入推理流式模型
-	@Resource
-	private StreamingChatModel reasoningStreamingChatModel;
 
 	// 引入Redis记忆存储
 	@Resource
@@ -120,7 +117,10 @@ public class AiCodeGeneratorServiceFactory {
 		// 3.switch选择生成何种代码类型
 		return switch (codeGenType) {
 			// 3.1 如果是vue工程，返回单独的对话记忆
-			case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
+			case VUE_PROJECT -> {
+				// 【多例模式(解决AI并发调用问题)：为每次AI Service 调用使用独立生成的ChatModel实例】获取多例模式下的推理模式流式输出大模型
+				StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+				yield AiServices.builder(AiCodeGeneratorService.class)
 					.chatModel(chatModel)
 					.streamingChatModel(reasoningStreamingChatModel)
 					.chatMemory(chatMemory)
@@ -145,17 +145,31 @@ public class AiCodeGeneratorServiceFactory {
 					// 处理工具调用幻觉问题：当AI出现幻觉，调用到不存在的工具时，该怎么处理？ 可以构造一个执行结果，告诉AI没有这个工具
 					.hallucinatedToolNameStrategy(toolExecutionRequest ->
 							ToolExecutionResultMessage.from(toolExecutionRequest,
-									"Error: there is no tool called " + toolExecutionRequest.name()))
+									"Error: there is no tool called " + toolExecutionRequest.name())
+					)
+					// [输入护轨]添加输入护轨 -> 在工厂模式中添加，目的是让所有的AI生成代码的方法都生效
+					.inputGuardrails(new PromptSafetyInputGuardrail())
+					// [输出护轨]添加输出护轨 -> 但是为了流式输出，这里不会使用输出护轨（输出护轨的弊端）
+					// .outputGuardrails(new RetryOutputGuardrail())
 					.build();
+			}
 
 			// 3.2 对另外两种：直接加载 AI对话记忆
-			case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
+			case HTML, MULTI_FILE -> {
+				// 【多例模式】使用多例模式的 StreamingChatModel 解决并发问题
+				StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("StreamingChatModelPrototype", StreamingChatModel.class);
+				yield AiServices.builder(AiCodeGeneratorService.class)
 						// 绑定各种方式的大模型对象
 						.chatModel(chatModel)
 						.streamingChatModel(openAiStreamingChatModel)
 						// 根据Id构建独立的对话记忆
 						.chatMemory(chatMemory)
+						// [输入护轨]添加输入护轨 -> 在工厂模式中添加，目的是让所有的AI生成代码的方法都生效
+						.inputGuardrails(new PromptSafetyInputGuardrail())
+						// [输出护轨]添加输出护轨 -> 但是为了流式输出，这里不会使用输出护轨（输出护轨的弊端）
+						// .outputGuardrails(new RetryOutputGuardrail())
 						.build();
+			}
 
 			// 否则，报错
 			default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);

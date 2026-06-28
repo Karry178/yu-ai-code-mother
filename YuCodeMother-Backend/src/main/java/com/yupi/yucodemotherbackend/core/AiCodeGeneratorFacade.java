@@ -7,6 +7,8 @@ import com.yupi.yucodemotherbackend.ai.AiCodeGeneratorServiceFactory;
 import com.yupi.yucodemotherbackend.ai.model.message.AiResponseMessage;
 import com.yupi.yucodemotherbackend.ai.model.message.ToolExecutedMessage;
 import com.yupi.yucodemotherbackend.ai.model.message.ToolRequestMessage;
+import com.yupi.yucodemotherbackend.constatnt.AppConstant;
+import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
@@ -34,6 +36,10 @@ public class AiCodeGeneratorFacade {
 
 	@Resource
 	private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+	// 引入 VueProjectBuilder
+	@Resource
+	private VueProjectBuilder vueProjectBuilder;
 
 	/**
 	 * 门面类 - 统一入口：根据类型生成并保存代码
@@ -99,7 +105,7 @@ public class AiCodeGeneratorFacade {
 			}
 			case VUE_PROJECT -> {
 				TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-				yield processTokenStream(tokenStream);
+				yield processTokenStream(tokenStream, appId);
 			}
 			default -> {
 				String errorMessage = "不支持的生成类型" + codeGenTypeEnum.getValue();
@@ -113,9 +119,10 @@ public class AiCodeGeneratorFacade {
 	 * 将 TokenStream 转换为 流式Flux<String> 并传递工具调用信息
 	 *
 	 * @param tokenStream TokenStream对象
+	 * @param appId       应用Id
 	 * @return Flux<String> 流式响应
 	 */
-	private Flux<String> processTokenStream(TokenStream tokenStream) {
+	private Flux<String> processTokenStream(TokenStream tokenStream, Long appId) {
 		// 反应式编程 - 下面这段为样板代码
 		return Flux.create(sink -> {
 			// 监听 TokenStream
@@ -135,7 +142,11 @@ public class AiCodeGeneratorFacade {
 				ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
 				sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
 			})
+			// 4.AI全部输出完成后 -> 执行项目构建（同步执行，确保预览时项目已就绪）
 			.onCompleteResponse((ChatResponse response) -> {
+				// 异步构造Vue项目
+				String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+				vueProjectBuilder.buildProjectAsync(projectPath);
 				sink.complete();
 			})
 			.onError((Throwable error) -> {
@@ -145,30 +156,6 @@ public class AiCodeGeneratorFacade {
 			.start();
 		});
 	}
-
-
-/*	*//**
-	 * 生成多文件模式的代码并保存
-	 *
-	 * @param userMessage 用户提示词
-	 * @return 保存的目录
-	 *//*
-	private File generateAndSaveMultiFileCode(String userMessage) {
-		MultiFileCodeResult multiFileCodeResult = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-		return CodeFileSaver.saveMultiFileCodeResult(multiFileCodeResult);
-	}*/
-
-
-/*	*//**
-	 * 生成多文件模式的代码并保存(流式)
-	 *
-	 * @param userMessage 用户提示词
-	 * @return 保存的目录
-	 *//*
-	private Flux<String> generateAndSaveMultiFileCodeStream(String userMessage) {
-		Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-		return processCodeStream(result, CodeGenTypeEnum.MULTI_FILE);
-	}*/
 
 
 	/**

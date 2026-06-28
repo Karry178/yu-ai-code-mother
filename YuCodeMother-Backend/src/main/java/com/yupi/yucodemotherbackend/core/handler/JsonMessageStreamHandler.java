@@ -1,14 +1,11 @@
 package com.yupi.yucodemotherbackend.core.handler;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.yupi.yucodemotherbackend.ai.model.message.*;
 import com.yupi.yucodemotherbackend.ai.tools.BaseTool;
 import com.yupi.yucodemotherbackend.ai.tools.ToolManager;
-import com.yupi.yucodemotherbackend.constatnt.AppConstant;
-import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import com.yupi.yucodemotherbackend.model.entity.User;
 import com.yupi.yucodemotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.yupi.yucodemotherbackend.service.ChatHistoryService;
@@ -27,10 +24,6 @@ import java.util.Set;
 @Slf4j
 @Component
 public class JsonMessageStreamHandler {
-
-	// 引入Vue项目部署方法
-	@Resource
-	private VueProjectBuilder vueProjectBuilder;
 
 	// 引入 ToolManager 工具管理器 -> 方便使用所有文件处理工具
 	@Resource
@@ -63,9 +56,9 @@ public class JsonMessageStreamHandler {
 					// 流式响应完成后，添加AI消息到对话历史
 					String aiResponse = chatHistoryStringBuilder.toString();
 					chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-					// [部署补充]所有的流式响应完成后 -> 引入vueProjectBuilder的异步构建方法 -> 同时要构造出 projectPath
-					String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-					vueProjectBuilder.buildProjectAsync(projectPath);
+					//【改为同步部署】-> [部署补充]所有的流式响应完成后 -> 引入vueProjectBuilder的异步构建方法 -> 同时要构造出 projectPath
+					/*String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+					vueProjectBuilder.buildProjectAsync(projectPath);*/
 				})
 				.doOnError(error -> {
 					// 如果 AI 回复失败，也要记录错误消息

@@ -1,5 +1,6 @@
 package com.yupi.yucodemotherbackend.ai;
 
+import com.yupi.yucodemotherbackend.utils.SpringContextUtil;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
@@ -14,17 +15,22 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class AiCodeGenTypeRoutingServiceFactory {
 
-	// 引入聊天大模型 ChatModel
-	@Resource
-	private ChatModel chatModel;
-
 	/**
 	 * 创建AI代码生成类型路由实例
 	 */
-	@Bean
-	public AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService() {
+	public AiCodeGenTypeRoutingService createAiCodeGenTypeRoutingService() {
+		ChatModel chatModel = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
 		return AiServices.builder(AiCodeGenTypeRoutingService.class)
 				.chatModel(chatModel)
 				.build();
+	}
+
+
+	/**
+	 * 默认提供一个Bean
+	 */
+	@Bean
+	public AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService() {
+		return createAiCodeGenTypeRoutingService();
 	}
 }

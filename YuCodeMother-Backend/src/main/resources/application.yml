@@ -14,6 +14,7 @@ spring:
       port: 6379
       username: default
       password: 123456
+      database: 0
       timeout: 5000  # 连接超时时间（毫秒）
       ttl: 3600  # 过期时间
   # session 配置
@@ -62,15 +63,33 @@ langchain4j:
 #      response-format: json_object
       log-requests: true
       log-responses: true
+      # 调用大模型重试机制
+      max-retries: 3
     # 流式对象输出
     streaming-chat-model:
       base-url: https://api.deepseek.com
       api-key: <Your API Key>
       model-name: deepseek-chat
-      max-tokens: 8192
+
       log-requests: true
       log-responses: true
-
+    # 推理 AI 模型配置（用于复杂的推理任务）
+    reasoning-streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: <Your API Key>
+      model-name: deepseek-reasoner
+      max-token: 32768
+      temperature: 0.1
+      log-requests: true
+      log-responses: true
+    # 智能路由 AI 模型配置（用于简单的分类任务）、
+    routing-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: <Your API Key>
+      model-name: deepseek-reasoner
+      log-requests: true
+      log-responses: true
+      max-tokens: 100
 
 ## 添加 COS 对象存储配置（需要从腾讯云获取）
 cos:

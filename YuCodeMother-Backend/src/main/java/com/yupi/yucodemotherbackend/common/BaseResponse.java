@@ -1,6 +1,7 @@
 package com.yupi.yucodemotherbackend.common;
 import com.yupi.yucodemotherbackend.exception.ErrorCode;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 

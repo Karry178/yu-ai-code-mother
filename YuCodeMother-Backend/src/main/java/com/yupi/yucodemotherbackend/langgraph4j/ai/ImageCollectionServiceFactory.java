@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 public class ImageCollectionServiceFactory {
 
 	// 引入大模型 + 全部的Tool工具类
-	@Resource
+	@Resource(name = "openAiChatModel")
 	private ChatModel chatModel;
 
 	@Resource

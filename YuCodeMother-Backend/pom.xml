@@ -194,6 +194,14 @@
             <version>2.21.1</version>
         </dependency>
 
+        <!-- 21. 引入Redisson依赖 -->
+        <!-- Redisson -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.50.0</version>
+        </dependency>
+
 
     </dependencies>
 

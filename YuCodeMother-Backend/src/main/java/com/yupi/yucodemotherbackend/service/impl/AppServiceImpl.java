@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.yupi.yucodemotherbackend.ai.AiCodeGenTypeRoutingService;
+import com.yupi.yucodemotherbackend.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.yupi.yucodemotherbackend.core.builder.VueProjectBuilder;
 import com.yupi.yucodemotherbackend.core.handler.StreamHandlerExecutor;
 import com.yupi.yucodemotherbackend.model.dto.app.AppAddRequest;
@@ -77,9 +78,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	@Resource
 	private ScreenshotService screenshotService;
 
-	// 引入 AI 代码生成类型路由服务
+	// 引入 AI 代码生成类型路由服务工厂
 	@Resource
-	private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+	private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
 
 	/**
@@ -168,6 +169,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		// app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
 
 		// 【长期选择】现在可以改为 AI 智能路由服务 选择生成代码类型了
+			// 【使用工厂模式】使用AI智能路由工厂获取一个新的Service -> 选择代码生成类型（多例模式）
+		AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
 		CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
 		app.setCodeGenType(selectedCodeGenType.getValue());
 
